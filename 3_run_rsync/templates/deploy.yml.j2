@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ pod_name }}
+  namespace: {{ pvc_namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ pod_name }}
+  template:
+    metadata:
+      name: {{ pod_name }}
+      namespace: {{ pvc_namespace }}
+      labels:
+        app: {{ pod_name }}
+    spec:
+      imagePullPolicy: Always
+      volumes:
+{% for pvc in pvcs %}
+      - name: {{ pvc.pvc_name }}
+        persistentVolumeClaim:
+          claimName: {{ pvc.pvc_name }}
+{% endfor %}
+      containers:
+      - name: myapp-container
+        image: {{ transfer_pod_image }}
+        ports:
+        - containerPort: 2222
+          name: ssh
+          protocol: TCP
+        volumeMounts:
+{% for pvc in pvcs %}
+        - mountPath: "/mnt/{{ pvc_namespace }}/{{ pvc.pvc_name }}"
+          name: {{ pvc.pvc_name }}
+{% endfor %}

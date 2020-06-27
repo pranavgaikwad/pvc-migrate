@@ -23,11 +23,11 @@
           namespace_data: "{{ lookup('file', namespace_data_filepath) | from_json }}"
 
 
-    - name: "Create pod and service"
+    - name: "Create deployment and service"
       vars:
         pvc_namespace: "{{ item.namespace }}"
         pod_name: "{{ pvc_namespace }}-rsync"
         svc_name: "{{ pvc_namespace }}-rsync"
         pvcs: "{{ item.pvcs }}"
-      include_tasks: "tasks/create-pod-service.yml"
+      include_tasks: "tasks/create-deploy-service.yml"
       with_items: "{{ pvc_data }}"

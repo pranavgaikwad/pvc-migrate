@@ -8,7 +8,8 @@
 #        bound_pod_uid: "{{ item.bound_pod_uid }}"
 #        mig_source_host: "{{ item.node_name }}"
 
-- debug: msg="{{ item }}"
+- debug:
+    msg: "{{ item }}"
 
 ################### Experimental #############################
 # TODO: inject dynamic public key
@@ -40,10 +41,10 @@
 - debug:
     msg: "{{ lookup('template', 'pod.yml.j2') }}"
 
-- name: "Create a pod for rsync"
+- name: "Create a deployment for rsync"
   k8s:
     state: present
-    definition: "{{ lookup('template', 'pod.yml.j2') }}"
+    definition: "{{ lookup('template', 'deploy.yml.j2') }}"
 
 - name: "Create a service for rsync"
   k8s:
@@ -54,8 +55,9 @@
   k8s_info:
     api_version: v1
     kind: pod
-    name: "{{ pod_name }}"
     namespace: "{{ pvc_namespace }}"
+    label_selectors:
+      - "app={{ pod_name }}"
   register: pod
   until: "true in (pod | json_query('resources[].status.containerStatuses[].ready'))"
   retries: "{{ transfer_pod_wait_retries }}"
@@ -89,17 +91,18 @@
   include_tasks: "tasks/rsync.yml"
   with_items: "{{ pvcs }}"
 
-- name: "Cleanup the transfer pod for rsync"
+- name: "Cleanup the deployment for rsync"
   k8s:
     state: absent
-    definition: "{{ lookup('template', 'pod.yml.j2') }}"
+    definition: "{{ lookup('template', 'deploy.yml.j2') }}"
 
 - name: "Wait for pod to be deleted"
   k8s_info:
     api_version: v1
     kind: pod
-    name: "{{ pod_name }}"
     namespace: "{{ pvc_namespace }}"
+    label_selectors:
+      - "app={{ pod_name }}"
   register: p
   until: "{{ p.resources | length == 0 }}"
   retries: 100
